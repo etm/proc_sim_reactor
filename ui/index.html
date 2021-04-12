@@ -1,4 +1,23 @@
 <!DOCTYPE html>
+<!--
+
+  This file is part of etm/proc_sim_reactor.
+
+  etm/proc_sim_reactor is free software; you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or (at your
+  option) any later version.
+
+  etm/proc_sim_reactor is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+  for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with etm/proc_sim_reactor (file LICENSE in the main directory); if not,
+  see <http://www.gnu.org/licenses/>.
+
+-->
 <html>
   <head>
     <title>Reactor Control</title>
@@ -6,13 +25,13 @@
     <meta charset='utf-8' />
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <style>
-    body {
+      body {
         font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    }
-    #chart {
-      max-width: 600px;
-      max-height: 400px;
-    }
+      }
+      #chart {
+        max-width: 600px;
+        max-height: 400px;
+      }
     </style>
   </head>
   <body>
@@ -46,66 +65,66 @@
     <div id="chart"></div>
     <script src="script.js"></script>
     <script>
-    var lineArr = [];
-    var MAX_LENGTH = 100;
-    var duration = 500;
-    var chart = realTimeLineChart();
+      var lineArr = [];
+      var MAX_LENGTH = 100;
+      var duration = 500;
+      var chart = realTimeLineChart();
 
-    var variables = {
-      p: 'Pressure (P)',
-      t: 'Temperature (T)',
-      n: 'Amount of substance (n)'
-    };
+      var variables = {
+        p: 'Pressure (P)',
+        t: 'Temperature (T)',
+        n: 'Amount of substance (n)'
+      };
 
-    function randomNumberBounds(min, max) {
-      return Math.floor(Math.random() * max) + min;
-    }
+      function randomNumberBounds(min, max) {
+        return Math.floor(Math.random() * max) + min;
+      }
 
-    function seedData() {
-      var now = new Date();
-      for (var i = 0; i < MAX_LENGTH; ++i) {
-        lineArr.push({
-          time: new Date(now.getTime() - ((MAX_LENGTH - i) * duration)),
+      function seedData() {
+        var now = new Date();
+        for (var i = 0; i < MAX_LENGTH; ++i) {
+          lineArr.push({
+            time: new Date(now.getTime() - ((MAX_LENGTH - i) * duration)),
+            labels: variables,
+            p: randomNumberBounds(0, 5),
+            t: randomNumberBounds(0, 2.5),
+            n: randomNumberBounds(0, 10)
+          });
+        }
+      }
+
+      function updateData() {
+        var now = new Date();
+
+        var lineData = {
+          time: now,
           labels: variables,
           p: randomNumberBounds(0, 5),
           t: randomNumberBounds(0, 2.5),
           n: randomNumberBounds(0, 10)
-        });
+        };
+        lineArr.push(lineData);
+
+        if (lineArr.length > 30) {
+          lineArr.shift();
+        }
+        d3.select("#chart").datum(lineArr).call(chart);
       }
-    }
 
-    function updateData() {
-      var now = new Date();
-
-      var lineData = {
-        time: now,
-        labels: variables,
-        p: randomNumberBounds(0, 5),
-        t: randomNumberBounds(0, 2.5),
-        n: randomNumberBounds(0, 10)
-      };
-      lineArr.push(lineData);
-
-      if (lineArr.length > 30) {
-        lineArr.shift();
+      function resize() {
+        if (d3.select("#chart svg").empty()) {
+          return;
+        }
+        chart.width(+d3.select("#chart").style("width").replace(/(px)/g, ""));
+        d3.select("#chart").call(chart);
       }
-      d3.select("#chart").datum(lineArr).call(chart);
-    }
 
-    function resize() {
-      if (d3.select("#chart svg").empty()) {
-        return;
-      }
-      chart.width(+d3.select("#chart").style("width").replace(/(px)/g, ""));
-      d3.select("#chart").call(chart);
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-      seedData();
-      window.setInterval(updateData, 500);
-      d3.select("#chart").datum(lineArr).call(chart);
-      d3.select(window).on('resize', resize);
-    });
+      document.addEventListener("DOMContentLoaded", function() {
+        seedData();
+        window.setInterval(updateData, 500);
+        d3.select("#chart").datum(lineArr).call(chart);
+        d3.select(window).on('resize', resize);
+      });
     </script>
-</body>
+  </body>
 </html>
