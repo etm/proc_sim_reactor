@@ -5,6 +5,7 @@
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <meta charset='utf-8' />
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script type="text/javascript" src="/js_libs/underscore.min.js"></script>
     <style>
     body {
         font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -33,8 +34,8 @@
     <p>This demonstrator show the capabilities of BPMN for modeling continuous
     and executalbe processes.  The graph below visualizes what is going on
     inside a reactor according to the equations of state of an ideal gas:  <strong>P*V =
-    n*R*T</strong> (see  PTn in the legend of the graph, V is the constant volume, while R
-    is the gas constant).</p>
+    m*Rₛ*T</strong> (see  PTm in the legend of the graph, V is the constant volume, while Rₛ
+    is the specific gas constant).</p>
 
     <p>The reactor is controlled by this <a
     href='https://cpee.org/flow/edit.html?monitor=https://cpee.org/flow/engine/355/'>BPMN
@@ -46,56 +47,59 @@
     <div id="chart"></div>
     <script src="script.js"></script>
     <script>
-    var lineArr = [];
-    var MAX_LENGTH = 100;
-    var duration = 500;
-    var chart = realTimeLineChart();
-
-    var variables = {
-      p: 'Pressure (P)',
-      t: 'Temperature (T)',
-      n: 'Amount of substance (n)'
+    var cdata = {
+      'labels': {},
+      'display': [],
+      'goals': {},
+      'values': []
     };
+    var MAX_LENGTH = 30;
+    var duration = 500;
+    var chart = realTimeLineChart(600,400,duration);
 
-    function randomNumberBounds(min, max) {
-      return Math.floor(Math.random() * max) + min;
+    function es_init(gdir,gstage) {
+      var es = new EventSource('server/data/');
+      es.onopen = function() {
+        console.log('es open');
+      };
+      es.onmessage = function(e) {
+        let t = JSON.parse(e.data);
+        cdata.labels = t.labels;
+        cdata.goals = t.goals;
+        cdata.display = t.display;
+        if (cdata.values.length == 0) {
+          seedData(t.values);
+        } else {
+          updateData(t.values);
+        }
+      };
+      es.onerror = function() {
+        console.log('es error');
+        // es_init();
+      };
     }
 
-    function seedData() {
-      var now = new Date();
-      var lineData = {
-        time: now,
-        p: 0,
-        t: 0,
-        n: 0
-      };
+    function seedData(values) {
+      let now = new Date();
+      let vals = cdata.values;
       for (var i = 0; i < MAX_LENGTH; ++i) {
-        lineArr.push({
-          time: new Date(lineData.time - ((MAX_LENGTH - i) * duration)),
-          labels: variables,
-          p: lineData.p,
-          t: lineData.t,
-          n: lineData.n
-        });
+        let tmp = { time: new Date(now - ((MAX_LENGTH - i) * duration)) };
+        Object.assign(tmp,values);
+        vals.push(tmp);
       }
     }
 
-    function updateData() {
+    function updateData(values) {
       var now = new Date();
+      let vals = cdata.values;
+      let tmp = { time: now } ;
+      Object.assign(tmp, values);
+      vals.push(tmp);
 
-      var lineData = {
-        time: now,
-        labels: variables,
-        p: randomNumberBounds(0, 5),
-        t: randomNumberBounds(0, 2.5),
-        n: randomNumberBounds(0, 10)
-      };
-      lineArr.push(lineData);
-
-      if (lineArr.length > 30) {
-        lineArr.shift();
+      if (vals.length > MAX_LENGTH) {
+        vals.shift();
       }
-      d3.select("#chart").datum(lineArr).call(chart);
+      d3.select("#chart").datum(cdata).call(chart);
     }
 
     function resize() {
@@ -107,9 +111,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-      seedData();
-      window.setInterval(updateData, 500);
-      d3.select("#chart").datum(lineArr).call(chart);
+      es_init();
       d3.select(window).on('resize', resize);
     });
     </script>

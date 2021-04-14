@@ -22,47 +22,61 @@ require 'riddl/protocols/utils'
 require 'fileutils'
 
 module Reactor
-  R = 0.08206
-  Y_AXIS_NORMALIZE = 10.0
-
-  def self::change(vals,state,behavior)
-    if state['heat']
+  def self::change(vals,state,behavior) #{{{
+    state['h'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
+    p state
+    if state['h']
       vals['t'] =  vals['t'] + behavior['h']
     else
       vals['t'] =  vals['t'] + behavior['c']
     end
-  end
+    vals['t'] = 293.15 if vals['t'] < 293.15  # never go below 20 degrees (room temperature)
+    p vals
+  end #}}}
 
-  def self::range_normalize(v,f,t)
-    chunk = (t-f)/Reactor::Y_AXIS_NORMALIZE
+  def self::range_normalize(v,f,t,y_normalize) #{{{
+    chunk = (t-f)/y_normalize
     if v < f
       -((f-v)/chunk)
     elsif v > t
-      Reactor::Y_AXIS_NORMALIZE + ((v-t)/chunk)
+      y_normalize + ((v-t)/chunk)
     else
       (v-f)/chunk
     end
-  end
+  end #}}}
 
-  def self::normalize(vals,goals)
+  def self::normalize(vals,goals,state,y_normalize) #{{{
     {
-      'p' => Reactor::range_normalize(vals['p'],goals['p']['f'],goals['p']['t']),
-      't' => Reactor::range_normalize(vals['t'],goals['t']['f'],goals['t']['t']),
-      'n' => Reactor::range_normalize(vals['n'],goals['n']['f'],goals['n']['t'])
+      'p' => Reactor::range_normalize(vals['p'],goals['p']['f'],goals['p']['t'],y_normalize),
+      't' => Reactor::range_normalize(vals['t'],goals['t']['f'],goals['t']['t'],y_normalize),
+      'm' => Reactor::range_normalize(vals['m'],goals['m']['f'],goals['m']['t'],y_normalize),
+      'v' => vals['v'],
+      'r' => vals['r'],
+      'h' => state['h']
     }
-  end
+  rescue => e
+      puts e
+  end #}}}
 
-  def self::calculate(vals,goals,conns)
-    vals['p'] = (vals['n'] * R * vals['t']) / vals['v']
-    ret = Reactor::normalize(vals,goals)
+  def self::calculate(vals,goals,state,y_normalize) #{{{
+    vals['p'] = (vals['m'] * vals['r'] * vals['t']) / vals['v']
+    Reactor::normalize(vals,goals,state,y_normalize)
+  rescue
+    {}
+  end #}}}
+
+  def self::send(vals,labels,display,goals,conns) #{{{
+    ret = {
+      'labels' => labels,
+      'display' => display,
+      'goals' => goals,
+      'values' => vals
+    }
     conns.each do |e|
       e.send JSON::generate(ret)
     end
-    true
-  rescue
-    false
   end
-end
+end #}}}
 
 class Active < Riddl::SSEImplementation
   def onopen
@@ -80,12 +94,14 @@ server = Riddl::Server.new(File.join(__dir__,'/sim.xml'), :host => 'localhost') 
 
   @riddl_opts[:connections] = []
   @riddl_opts[:interval] ||= 1.0
+  @riddl_opts[:y_normalize] ||= 10
+  @riddl_opts[:y_normalize] = @riddl_opts[:y_normalize].to_f
 
   parallel do
-    Thread.abort_on_exception = true
     loop do
       Reactor::change(@riddl_opts[:values],@riddl_opts[:state],@riddl_opts[:behavior])
-      Reactor::calculate(@riddl_opts[:values],@riddl_opts[:goals],@riddl_opts[:connections])
+      vals = Reactor::calculate(@riddl_opts[:values],@riddl_opts[:goals],@riddl_opts[:state],@riddl_opts[:y_normalize])
+      Reactor::send(vals,@riddl_opts[:labels],@riddl_opts[:display],@riddl_opts[:goals],@riddl_opts[:connections])
       sleep @riddl_opts[:interval]
     end
   end
