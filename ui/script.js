@@ -1,5 +1,5 @@
 function realTimeLineChart(width,height,duration) {
-  var margin = {top: 20, right: 20, bottom: 130, left: 50},
+  var margin = {top: 20, right: 20, bottom: 140, left: 50},
       color = d3.schemeCategory10;
 
   function chart(selection) {
@@ -8,6 +8,7 @@ function realTimeLineChart(width,height,duration) {
     selection.each(function(cdata) {
       data = cdata.display.map(function(c) {
         return {
+          key: c,
           label: cdata.labels[c],
           values: cdata.values.map(function(d) {
             return {time: +d.time, value: d[c]};
@@ -66,7 +67,7 @@ function realTimeLineChart(width,height,duration) {
       var xAxisLabelEnter = gEnter.append("g")
         .attr("class", "label_x")
         .append('text')
-          .attr("transform", "translate(" + ((width - margin.right - margin.right)/2) + " ," + (height - margin.bottom + 20) + ")")
+          .attr("transform", "translate(" + ((width - margin.right - margin.right - 240)/2) + " ," + (height - margin.bottom + 20) + ")")
           .style("text-anchor", "middle")
           .text('Time');
       var yAxisLabelEnter = gEnter.append("g")
@@ -78,10 +79,10 @@ function realTimeLineChart(width,height,duration) {
 
       var expEnter = gEnter.append("g")
           .attr("class", "exp")
-          .attr("transform", "translate(" + (width-margin.right-margin.left-250) + "," + (height-margin.top-75) + ")");
+          .attr("transform", "translate(" + (width-margin.right-margin.left-250) + "," + (height-margin.top-125) + ")");
         expEnter.append("rect")
           .attr("width", 250)
-          .attr("height", 75)
+          .attr("height", 125)
           .attr("fill", "#ffffff")
           .attr("fill-opacity", 0.7);
         expEnter.selectAll("text")
@@ -135,13 +136,13 @@ function realTimeLineChart(width,height,duration) {
       g.selectAll("g .legend text")
         .data(data)
         .text(function(d) {
-          return d.label;
+          return d.label + ': ' + $.sprintf('%.1f',cdata.values[cdata.values.length-1][d.key + '_orig']);
         });
 
       g.selectAll("g .exp text")
         .data(expdata)
         .text(function(d) {
-          return d.label + ': ' + d.values[d.values.length-1].value;
+          return d.label + ': ' + $.sprintf('%.1f',d.values[d.values.length-1].value);
         });
 
       // For transitions https://bl.ocks.org/mbostock/1642874

@@ -22,24 +22,24 @@ require 'riddl/protocols/utils'
 require 'fileutils'
 
 module Reactor
-  def self::change(vals,state,behavior) #{{{
-    state['h'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
+  def self::change(vals,state) #{{{
+    state['heat'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
 
     # make it interessting
-    behavior['h'] = rand(50)
-    behavior['c'] = -rand(30)
+    vals['h'] = rand(50) if state['heat']
+    vals['c'] = -rand(30) if !state['heat']
     if rand(10) > 7
-      state['h'] = !state['h']
+      state['heat'] = !state['heat']
       vals['m'] = (rand(3) + 1).to_f
     end
 
-    if state['h']
-      vals['t'] =  vals['t'] + behavior['h']
+    if state['heat']
+      vals['t'] =  vals['t'] + vals['h']
     else
-      vals['t'] =  vals['t'] + behavior['c']
+      vals['t'] =  vals['t'] + vals['c']
     end
     vals['t'] = 293.15 if vals['t'] < 293.15  # never go below 20 degrees (room temperature)
-    state['h'] = false if vals['p'] && vals['p'] > 3000000  # if pressure to hight cool down
+    state['heat'] = false if vals['p'] && vals['p'] > 3000000  # if pressure to hight cool down
   end #}}}
 
   def self::range_normalize(v,f,t,y_normalize) #{{{
@@ -58,9 +58,14 @@ module Reactor
       'p' => Reactor::range_normalize(vals['p'],goals['p']['f'],goals['p']['t'],y_normalize),
       't' => Reactor::range_normalize(vals['t'],goals['t']['f'],goals['t']['t'],y_normalize),
       'm' => Reactor::range_normalize(vals['m'],goals['m']['f'],goals['m']['t'],y_normalize),
+      'p_orig' => vals['p'],
+      't_orig' => vals['t'],
+      'm_orig' => vals['m'],
       'v' => vals['v'],
       'r' => vals['r'],
-      'h' => state['h']
+      'h' => vals['h'],
+      'c' => vals['c'],
+      'heat' => state['heat']
     }
   rescue => e
       puts e
@@ -107,7 +112,7 @@ server = Riddl::Server.new(File.join(__dir__,'/sim.xml'), :host => 'localhost') 
 
   parallel do
     loop do
-      Reactor::change(@riddl_opts[:values],@riddl_opts[:state],@riddl_opts[:behavior])
+      Reactor::change(@riddl_opts[:values],@riddl_opts[:state])
       vals = Reactor::calculate(@riddl_opts[:values],@riddl_opts[:goals],@riddl_opts[:state],@riddl_opts[:y_normalize])
       Reactor::send(vals,@riddl_opts[:labels],@riddl_opts[:display],@riddl_opts[:goals],@riddl_opts[:connections])
       sleep @riddl_opts[:interval]
