@@ -38,7 +38,7 @@ function realTimeLineChart(width,height,duration) {
       x.domain([xMin, xMax]);
       y.domain([-2,12]);
       //   d3.min(data, function(c) { return d3.min(c.values, function(d) { return d.value; }) - 2}),
-      //   d3.max(data, function(c) { return d3.max(c.values, function(d) { return d.value; }) + 2})
+      //   d3.max(data, function(c) { return d3.max(c.values, function(d) { return d.value; }) + 5})
       // ]);
       z.domain(data.map(function(c) { return c.label; }));
 
