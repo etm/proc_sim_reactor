@@ -24,14 +24,22 @@ require 'fileutils'
 module Reactor
   def self::change(vals,state,behavior) #{{{
     state['h'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
-    p state
+
+    # make it interessting
+    behavior['h'] = rand(50)
+    behavior['c'] = -rand(30)
+    if rand(10) > 7
+      state['h'] = !state['h']
+      vals['m'] = (rand(3) + 1).to_f
+    end
+
     if state['h']
       vals['t'] =  vals['t'] + behavior['h']
     else
       vals['t'] =  vals['t'] + behavior['c']
     end
     vals['t'] = 293.15 if vals['t'] < 293.15  # never go below 20 degrees (room temperature)
-    p vals
+    state['h'] = false if vals['p'] && vals['p'] > 3000000  # if pressure to hight cool down
   end #}}}
 
   def self::range_normalize(v,f,t,y_normalize) #{{{

@@ -35,10 +35,10 @@ function realTimeLineChart(width,height,duration) {
       })).getTime() - (duration*2));
 
       x.domain([xMin, xMax]);
-      y.domain([
-        d3.min(data, function(c) { return d3.min(c.values, function(d) { return d.value; }) - 2}),
-        d3.max(data, function(c) { return d3.max(c.values, function(d) { return d.value; }) + 2})
-      ]);
+      y.domain([-2,12]);
+      //   d3.min(data, function(c) { return d3.min(c.values, function(d) { return d.value; }) - 2}),
+      //   d3.max(data, function(c) { return d3.max(c.values, function(d) { return d.value; }) + 2})
+      // ]);
       z.domain(data.map(function(c) { return c.label; }));
 
       var line = d3.line()
@@ -92,7 +92,7 @@ function realTimeLineChart(width,height,duration) {
 
       var legendEnter = gEnter.append("g")
           .attr("class", "legend")
-          .attr("transform", "translate(" + (width-margin.right-margin.left-250) + ",25)");
+          .attr("transform", "translate(10,0)");
         legendEnter.append("rect")
           .attr("width", 250)
           .attr("height", 75)
