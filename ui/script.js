@@ -80,11 +80,6 @@ function realTimeLineChart(width,height,duration) {
       var expEnter = gEnter.append("g")
           .attr("class", "exp")
           .attr("transform", "translate(" + (width-margin.right-margin.left-250) + "," + (height-margin.top-125) + ")");
-        expEnter.append("rect")
-          .attr("width", 250)
-          .attr("height", 125)
-          .attr("fill", "#ffffff")
-          .attr("fill-opacity", 0.7);
         expEnter.selectAll("text")
           .data(expdata).enter()
           .append("text")
