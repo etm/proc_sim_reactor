@@ -20,7 +20,10 @@
 
 <description xmlns="http://riddl.org/ns/description/1.0" xmlns:ann="http://riddl.org/ns/annotation/1.0" xmlns:xi="http://www.w3.org/2001/XInclude" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <message name="value">
-    <parameter name="value" type="float"/>
+    <choice>
+      <parameter name="value" type="float"/>
+      <parameter name="value" type="boolean"/>
+    </choice>
   </message>
   <message name="range">
     <parameter name="from" type="float"/>
@@ -30,36 +33,22 @@
     <resource relative="data">
       <sse/>
     </resource>
-    <resource relative="control">
-      <resource relative="amount">
+    <resource relative="goals">
+      <get out="json"/>
+      <resource>
+        <get out="range"/>
+        <put in="range"/>
+      </resource>
+    </resource>
+    <resource relative="values">
+      <get out="json"/>
+      <resource>
         <get out="value"/>
         <put in="value"/>
       </resource>
     </resource>
-    <resource relative="goals">
-      <resource relative="temperature">
-        <get out="range"/>
-        <put in="range"/>
-      </resource>
-      <resource relative="pressure">
-        <get out="range"/>
-        <put in="range"/>
-      </resource>
-    </resource>
-    <resource relative="switch">
-      <resource relative="heat">
-        <put/>
-      </resource>
-    </resource>
-    <resource relative="behavior">
-      <resource relative="heat">
-        <get out='value'/>
-        <put in='value'/>
-      </resource>
-      <resource relative="cool">
-        <get out='value'/>
-        <put in='value'/>
-      </resource>
+    <resource relative="display">
+      <get out="json"/>
     </resource>
   </resource>
 </description>

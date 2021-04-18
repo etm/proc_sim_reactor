@@ -1,5 +1,7 @@
 function realTimeLineChart(width,height,duration) {
   var margin = {top: 20, right: 20, bottom: 140, left: 50},
+      yMin = -2,
+      yMax = 12,
       color = d3.schemeCategory10;
 
   function chart(selection) {
@@ -35,11 +37,12 @@ function realTimeLineChart(width,height,duration) {
         return d3.max(c.values, function(d) { return d.time; })
       })).getTime() - (duration*2));
 
+      let tmin = d3.min(data, function(c) { return d3.min(c.values, function(d) { return d.value; })});
+      let tmax = d3.max(data, function(c) { return d3.max(c.values, function(d) { return d.value; })});
+      if (tmin < yMin) { yMin = tmin; }
+      if (tmin < yMin) { yMin = tmin; }
       x.domain([xMin, xMax]);
-      y.domain([-2,12]);
-      //   d3.min(data, function(c) { return d3.min(c.values, function(d) { return d.value; }) - 2}),
-      //   d3.max(data, function(c) { return d3.max(c.values, function(d) { return d.value; }) + 5})
-      // ]);
+      y.domain([yMin, yMax]);
       z.domain(data.map(function(c) { return c.label; }));
 
       var line = d3.line()
@@ -58,11 +61,14 @@ function realTimeLineChart(width,height,duration) {
             .attr("width", width-margin.left-margin.right)
             .attr("height", height-margin.top-margin.bottom);
         gEnter.append("g")
-            .attr("class", "lines")
-            .attr("clip-path", "url(#clip)")
-          .selectAll(".data").data(data).enter()
+          .attr("class", "lines")
+          .attr("clip-path", "url(#clip)")
+          .selectAll(".data")
+            .data(data)
+            .enter()
             .append("path")
-              .attr("class", "data");
+              .attr("class", "data")
+              .transition(trans);
 
       var xAxisLabelEnter = gEnter.append("g")
         .attr("class", "label_x")
@@ -120,7 +126,7 @@ function realTimeLineChart(width,height,duration) {
         .attr("width", width-margin.left-margin.right)
         .attr("height", height-margin.top-margin.right);
 
-      g.selectAll("g path.data")
+     g.selectAll("g path.data")
         .data(data)
         .style("stroke", function(d) { return z(d.label); })
         .style("stroke-width", 1)

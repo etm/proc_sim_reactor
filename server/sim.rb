@@ -22,24 +22,24 @@ require 'riddl/protocols/utils'
 require 'fileutils'
 
 module Reactor
-  def self::change(vals,state) #{{{
-    state['heat'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
+  def self::change(vals) #{{{
+    vals['heat'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
 
     # make it interessting
-    vals['h'] = rand(50) if state['heat']
-    vals['c'] = -rand(30) if !state['heat']
+    vals['h'] = rand(50) if vals['heat']
+    vals['c'] = -rand(30) if !vals['heat']
     if rand(10) > 7
-      state['heat'] = !state['heat']
+      vals['heat'] = !vals['heat']
       vals['m'] = (rand(3) + 1).to_f
     end
 
-    if state['heat']
+    if vals['heat']
       vals['t'] =  vals['t'] + vals['h']
     else
       vals['t'] =  vals['t'] + vals['c']
     end
     vals['t'] = 293.15 if vals['t'] < 293.15  # never go below 20 degrees (room temperature)
-    state['heat'] = false if vals['p'] && vals['p'] > 3000000  # if pressure to hight cool down
+    vals['heat'] = false if vals['p'] && vals['p'] > 300000  # if pressure to hight cool down
   end #}}}
 
   def self::range_normalize(v,f,t,y_normalize) #{{{
@@ -53,7 +53,7 @@ module Reactor
     end
   end #}}}
 
-  def self::normalize(vals,goals,state,y_normalize) #{{{
+  def self::normalize(vals,goals,y_normalize) #{{{
     {
       'p' => Reactor::range_normalize(vals['p'],goals['p']['f'],goals['p']['t'],y_normalize),
       't' => Reactor::range_normalize(vals['t'],goals['t']['f'],goals['t']['t'],y_normalize),
@@ -65,15 +65,15 @@ module Reactor
       'r' => vals['r'],
       'h' => vals['h'],
       'c' => vals['c'],
-      'heat' => state['heat']
+      'heat' => vals['heat']
     }
   rescue => e
       puts e
   end #}}}
 
-  def self::calculate(vals,goals,state,y_normalize) #{{{
+  def self::calculate(vals,goals,y_normalize) #{{{
     vals['p'] = (vals['m'] * vals['r'] * vals['t']) / vals['v']
-    Reactor::normalize(vals,goals,state,y_normalize)
+    Reactor::normalize(vals,goals,y_normalize)
   rescue
     {}
   end #}}}
@@ -112,8 +112,8 @@ server = Riddl::Server.new(File.join(__dir__,'/sim.xml'), :host => 'localhost') 
 
   parallel do
     loop do
-      Reactor::change(@riddl_opts[:values],@riddl_opts[:state])
-      vals = Reactor::calculate(@riddl_opts[:values],@riddl_opts[:goals],@riddl_opts[:state],@riddl_opts[:y_normalize])
+      Reactor::change(@riddl_opts[:values])
+      vals = Reactor::calculate(@riddl_opts[:values],@riddl_opts[:goals],@riddl_opts[:y_normalize])
       Reactor::send(vals,@riddl_opts[:labels],@riddl_opts[:display],@riddl_opts[:goals],@riddl_opts[:connections])
       sleep @riddl_opts[:interval]
     end
