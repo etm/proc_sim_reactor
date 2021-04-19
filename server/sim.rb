@@ -22,6 +22,23 @@ require 'riddl/protocols/utils'
 require 'fileutils'
 
 module Reactor
+  def self::parse_value(value)
+    case value.downcase
+      when 'true'
+        true
+      when 'false'
+        false
+      when 'nil', 'null'
+        nil
+      else
+        begin
+          JSON::parse(value)
+        rescue
+          (Integer value rescue nil) || (Float value rescue nil) || value.to_s rescue nil || ''
+        end
+    end
+  end
+
   def self::change(vals) #{{{
     vals['heat'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
 
@@ -88,16 +105,59 @@ module Reactor
     conns.each do |e|
       e.send JSON::generate(ret)
     end
-  end
-end #}}}
+  end #}}}
+end
 
-class Active < Riddl::SSEImplementation
+class Active < Riddl::SSEImplementation #{{{
   def onopen
     @conns = @a[0]
     @conns << self
   end
   def onclose
     @conns.delete(self)
+  end
+end #}}}
+
+class GetAll < Riddl::Implementation
+  def response
+    Riddl::Parameter::Complex.new('json','application/json',JSON::pretty_generate(@a[0]))
+  end
+end
+class GetVal < Riddl::Implementation
+  def response
+    if @a[0].has_key? @r[-1]
+      Riddl::Parameter::Complex.new('json','application/json',JSON::pretty_generate(@a[0][@r[-1]]))
+    else
+      @status = 404
+    end
+  end
+end
+class PutVal < Riddl::Implementation
+  def response
+    if @a[0].has_key? @r[-1]
+      x = Reactor::parse_value @p[0].value
+      a = @a[0][@r[-1]].class
+      b = x.class
+      if a == b  || (a == TrueClass && b == FalseClass) || (a == FalseClass && b == TrueClass)
+        @a[0][@r[-1]] = x
+      else
+        @status = 400
+      end
+    else
+      @status = 404
+    end
+    nil
+  end
+end
+class PutRange < Riddl::Implementation
+  def response
+    if @a[0].has_key? @r[-1]
+      @a[0][@r[-1]]['f'] = Reactor::parse_value @p[0].value
+      @a[0][@r[-1]]['t'] = Reactor::parse_value @p[1].value
+    else
+      @status = 404
+    end
+    nil
   end
 end
 
@@ -123,7 +183,25 @@ server = Riddl::Server.new(File.join(__dir__,'/sim.xml'), :host => 'localhost') 
     on resource 'data' do
       run Active, @riddl_opts[:connections] if sse
     end
-    on resource 'control' do
+    on resource 'goals' do
+      run GetAll, @riddl_opts[:goals] if get
+      on resource do
+        run GetVal, @riddl_opts[:goals] if get
+        run PutRange, @riddl_opts[:goals] if put 'range'
+      end
+    end
+    on resource 'values' do
+      run GetAll, @riddl_opts[:values] if get
+      on resource do
+        run GetVal, @riddl_opts[:values] if get
+        run PutVal, @riddl_opts[:values] if put 'value'
+      end
+    end
+    on resource 'labels' do
+      run GetAll, @riddl_opts[:labels] if get
+    end
+    on resource 'display' do
+      run GetAll, @riddl_opts[:display] if get
     end
   end
 end.loop!

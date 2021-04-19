@@ -29,6 +29,9 @@
     <parameter name="from" type="float"/>
     <parameter name="to" type="float"/>
   </message>
+  <message name="json">
+    <parameter name="json" mimetype="application/json"/>
+  </message>
   <resource>
     <resource relative="data">
       <sse/>
@@ -36,18 +39,21 @@
     <resource relative="goals">
       <get out="json"/>
       <resource>
-        <get out="range"/>
+        <get out="json"/>
         <put in="range"/>
       </resource>
     </resource>
     <resource relative="values">
       <get out="json"/>
       <resource>
-        <get out="value"/>
+        <get out="json"/>
         <put in="value"/>
       </resource>
     </resource>
     <resource relative="display">
+      <get out="json"/>
+    </resource>
+    <resource relative="labels">
       <get out="json"/>
     </resource>
   </resource>
