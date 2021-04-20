@@ -21,8 +21,8 @@ require 'riddl/server'
 require 'riddl/protocols/utils'
 require 'fileutils'
 
-module Reactor
-  def self::parse_value(value) #{{{
+module WebValue #{{{
+  def self::parse_value(value)
     case value.downcase
       when 'true'
         true
@@ -37,8 +37,10 @@ module Reactor
           (Integer value rescue nil) || (Float value rescue nil) || value.to_s rescue nil || ''
         end
     end
-  end #}}}
+  end
+end #}}}
 
+module Reactor
   def self::change(vals) #{{{
     vals['heat'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
 
@@ -49,14 +51,18 @@ module Reactor
       vals['heat'] = !vals['heat']
       vals['m'] = (rand(3) + 1).to_f
     end
+    vals['heat'] = false if vals['p'] && vals['p'] > 300000  # if pressure to hight cool down
 
+    # change temperature
     if vals['heat']
       vals['t'] =  vals['t'] + vals['h']
     else
       vals['t'] =  vals['t'] + vals['c']
     end
     vals['t'] = 293.15 if vals['t'] < 293.15  # never go below 20 degrees (room temperature)
-    vals['heat'] = false if vals['p'] && vals['p'] > 300000  # if pressure to hight cool down
+
+    # calculate pressure
+    vals['p'] = (vals['m'] * vals['r'] * vals['t']) / vals['v']
   end #}}}
 
   def self::range_normalize(v,f,t,y_normalize) #{{{
@@ -70,7 +76,7 @@ module Reactor
     end
   end #}}}
 
-  def self::normalize(vals,goals,display,y_normalize) #{{{
+  def self::calculate(vals,goals,display,y_normalize) #{{{
     ret = {}
     display.each do |e|
       ret[e.to_s] = Reactor::range_normalize(vals[e],goals[e]['f'],goals[e]['t'],y_normalize)
@@ -80,15 +86,8 @@ module Reactor
       ret[k] = vals[k]
     end
     ret
-  rescue => e
-    puts e.message
-    puts e.backtrace
-  end #}}}
-
-  def self::calculate(vals,goals,display,y_normalize) #{{{
-    vals['p'] = (vals['m'] * vals['r'] * vals['t']) / vals['v']
-    Reactor::normalize(vals,goals,display,y_normalize)
   rescue
+    puts e.message
     {}
   end #}}}
 
@@ -132,7 +131,7 @@ end
 class PutVal < Riddl::Implementation
   def response
     if @a[0].has_key? @r[-1]
-      x = Reactor::parse_value @p[0].value
+      x = WebValue::parse_value @p[0].value
       a = @a[0][@r[-1]].class
       b = x.class
       if a == b  || (a == TrueClass && b == FalseClass) || (a == FalseClass && b == TrueClass)
@@ -149,8 +148,8 @@ end
 class PutRange < Riddl::Implementation
   def response
     if @a[0].has_key? @r[-1]
-      @a[0][@r[-1]]['f'] = Reactor::parse_value @p[0].value
-      @a[0][@r[-1]]['t'] = Reactor::parse_value @p[1].value
+      @a[0][@r[-1]]['f'] = WebValue::parse_value @p[0].value
+      @a[0][@r[-1]]['t'] = WebValue::parse_value @p[1].value
     else
       @status = 404
     end
