@@ -58,13 +58,17 @@
     var MAX_LENGTH = 30;
     var duration = 500;
     var chart = realTimeLineChart(600,400,duration);
+    var open = false;
 
-    function es_init(gdir,gstage) {
+    function es_init() {
+      if (open == true) return;
       var es = new EventSource('server/data/');
       es.onopen = function() {
+        open = true;
         console.log('es open');
       };
       es.onmessage = function(e) {
+        open = true;
         let t = JSON.parse(e.data);
         cdata.labels = t.labels;
         cdata.goals = t.goals;
@@ -76,8 +80,9 @@
         }
       };
       es.onerror = function() {
+        open = false;
         console.log('es error');
-        // es_init();
+        setTimeout(es_init, duration);
       };
     }
 
@@ -98,11 +103,32 @@
       Object.assign(tmp, values);
       vals.push(tmp);
 
-      if (vals.length > MAX_LENGTH) {
+      while (vals.length > MAX_LENGTH) {
         vals.shift();
       }
+      _.each(vals,(v1,k1) => {
+        _.each(values,(v2,k2) => {
+          if (!(k2 in v1)) {
+            v1[k2] = v2;
+          }
+        });
+      });
       d3.select("#chart").datum(cdata).call(chart);
     }
+
+    function updateZeroData() {
+      if (open == false) {
+        var now = new Date();
+        let vals = cdata.values;
+        let tmp = { time: now } ;
+        vals.push(tmp);
+        if (vals.length > MAX_LENGTH) {
+          vals.shift();
+        }
+        d3.select("#chart").datum(cdata).call(chart);
+      }
+    }
+
 
     function resize() {
       if (d3.select("#chart svg").empty()) {
@@ -114,6 +140,7 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       es_init();
+      setInterval(updateZeroData, duration);
       d3.select(window).on('resize', resize);
     });
     </script>

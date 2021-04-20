@@ -5,7 +5,7 @@ function realTimeLineChart(width,height,duration) {
       color = d3.schemeCategory10;
 
   function chart(selection) {
-    // Based on https://bl.ocks.org/mbostock/3884955
+    // Inspired by https://bl.ocks.org/mbostock/3884955
 
     selection.each(function(cdata) {
       data = cdata.display.map(function(c) {
@@ -40,7 +40,7 @@ function realTimeLineChart(width,height,duration) {
       let tmin = d3.min(data, function(c) { return d3.min(c.values, function(d) { return d.value; })});
       let tmax = d3.max(data, function(c) { return d3.max(c.values, function(d) { return d.value; })});
       if (tmin < yMin) { yMin = tmin; }
-      if (tmin < yMin) { yMin = tmin; }
+      if (tmax > yMax) { yMax = tmax; }
       x.domain([xMin, xMax]);
       y.domain([yMin, yMax]);
       z.domain(data.map(function(c) { return c.label; }));
@@ -126,7 +126,7 @@ function realTimeLineChart(width,height,duration) {
         .attr("width", width-margin.left-margin.right)
         .attr("height", height-margin.top-margin.right);
 
-     g.selectAll("g path.data")
+      g.selectAll("g path.data")
         .data(data)
         .style("stroke", function(d) { return z(d.label); })
         .style("stroke-width", 1)
