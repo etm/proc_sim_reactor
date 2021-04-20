@@ -82,6 +82,9 @@
       es.onerror = function() {
         open = false;
         console.log('es error');
+        if (cdata.values.length == 0) {
+          seedData({});
+        }
         setTimeout(es_init, duration);
       };
     }

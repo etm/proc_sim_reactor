@@ -87,7 +87,8 @@ function realTimeLineChart(width,height,duration) {
           .attr("class", "exp")
           .attr("transform", "translate(" + (width-margin.right-margin.left-250) + "," + (height-margin.top-125) + ")");
         expEnter.selectAll("text")
-          .data(expdata).enter()
+          .data(expdata)
+          .enter()
           .append("text")
             .attr("y", function(d, i) { return (i*20) + 25; })
             .attr("x", 5);
@@ -105,7 +106,7 @@ function realTimeLineChart(width,height,duration) {
           .append("text")
             .attr("y", function(d, i) { return (i*20) + 25; })
             .attr("x", 5)
-            .attr("fill", function(d) { return z(d.label); });
+            .attr("fill", function(d) { console.log(d.label); return z(d.label); });
 
       var svg = selection.select("svg");
       svg.attr('width', width).attr('height', height);

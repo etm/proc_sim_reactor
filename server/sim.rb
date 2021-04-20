@@ -22,7 +22,7 @@ require 'riddl/protocols/utils'
 require 'fileutils'
 
 module Reactor
-  def self::parse_value(value)
+  def self::parse_value(value) #{{{
     case value.downcase
       when 'true'
         true
@@ -37,7 +37,7 @@ module Reactor
           (Integer value rescue nil) || (Float value rescue nil) || value.to_s rescue nil || ''
         end
     end
-  end
+  end #}}}
 
   def self::change(vals) #{{{
     vals['heat'] = false if vals['t'] > 600 # safety first, switch off reactor if temperature is over 600
@@ -70,27 +70,24 @@ module Reactor
     end
   end #}}}
 
-  def self::normalize(vals,goals,y_normalize) #{{{
-    {
-      'p' => Reactor::range_normalize(vals['p'],goals['p']['f'],goals['p']['t'],y_normalize),
-      't' => Reactor::range_normalize(vals['t'],goals['t']['f'],goals['t']['t'],y_normalize),
-      'm' => Reactor::range_normalize(vals['m'],goals['m']['f'],goals['m']['t'],y_normalize),
-      'p_orig' => vals['p'],
-      't_orig' => vals['t'],
-      'm_orig' => vals['m'],
-      'v' => vals['v'],
-      'r' => vals['r'],
-      'h' => vals['h'],
-      'c' => vals['c'],
-      'heat' => vals['heat']
-    }
+  def self::normalize(vals,goals,display,y_normalize) #{{{
+    ret = {}
+    display.each do |e|
+      ret[e.to_s] = Reactor::range_normalize(vals[e],goals[e]['f'],goals[e]['t'],y_normalize)
+      ret[e.to_s + '_orig'] = vals[e]
+    end
+    (vals.keys - display).each do |k|
+      ret[k] = vals[k]
+    end
+    ret
   rescue => e
-      puts e
+    puts e.message
+    puts e.backtrace
   end #}}}
 
-  def self::calculate(vals,goals,y_normalize) #{{{
+  def self::calculate(vals,goals,display,y_normalize) #{{{
     vals['p'] = (vals['m'] * vals['r'] * vals['t']) / vals['v']
-    Reactor::normalize(vals,goals,y_normalize)
+    Reactor::normalize(vals,goals,display,y_normalize)
   rescue
     {}
   end #}}}
@@ -173,7 +170,7 @@ server = Riddl::Server.new(File.join(__dir__,'/sim.xml'), :host => 'localhost') 
   parallel do
     loop do
       Reactor::change(@riddl_opts[:values])
-      vals = Reactor::calculate(@riddl_opts[:values],@riddl_opts[:goals],@riddl_opts[:y_normalize])
+      vals = Reactor::calculate(@riddl_opts[:values],@riddl_opts[:goals],@riddl_opts[:display],@riddl_opts[:y_normalize])
       Reactor::send(vals,@riddl_opts[:labels],@riddl_opts[:display],@riddl_opts[:goals],@riddl_opts[:connections])
       sleep @riddl_opts[:interval]
     end
